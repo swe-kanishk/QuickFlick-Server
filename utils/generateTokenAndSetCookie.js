@@ -7,9 +7,9 @@ export const generateTokenAndSetCookie = (res, userId) => {
 
     res.cookie("quickFlick-token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 24*60*60*1000,
-    });
+        secure: true,            // Ensures cookies are sent only over HTTPS
+        sameSite: "none",         // Necessary for cross-domain cookies
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
+    });    
     return token;
 }
