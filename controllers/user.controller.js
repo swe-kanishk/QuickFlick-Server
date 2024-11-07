@@ -42,11 +42,7 @@ export const register = async (req, res) => {
 
     // jwt
     generateTokenAndSetCookie(res, user._id);
-    sendVerificationEmail(user.email, verificationToken);
-
-    console.log(user)
-
-    
+    // sendVerificationEmail(user.email, verificationToken);
 
     res.status(201).json({
       success: true,
@@ -112,7 +108,7 @@ export const verifyEmail = async (req, res) => {
       (user.verificationToken = undefined),
       (user.verificationTokenExpiresAt = undefined),
       await user.save();
-    await sendWelcomeEmail(user.email, user.username);
+    // await sendWelcomeEmail(user.email, user.username);
     return res.status(201).json({
       success: true,
       message: "Email verified successfully",
@@ -249,7 +245,7 @@ export const getProfile = async (req, res) => {
 
 export const editProfile = async (req, res) => {
   try {
-    const userId = req.id;
+    const userId = req.userId;
     const { bio, gender } = req.body;
     const avatar = req.file;
 
@@ -285,7 +281,7 @@ export const editProfile = async (req, res) => {
 
 export const suggestedUsers = async (req, res) => {
   try {
-    const suggestedUsers = await User.find({ _id: { $ne: req.id } }).select(
+    const suggestedUsers = await User.find({ _id: { $ne: req.userId } }).select(
       "-password"
     );
     if (!suggestedUsers) {
@@ -305,7 +301,7 @@ export const suggestedUsers = async (req, res) => {
 
 export const followOrUnfollow = async (req, res) => {
   try {
-    const followKrneWala = req.id;
+    const followKrneWala = req.userId;
     const jiskoFollowKrunga = req.params.id;
     if (followKrneWala === jiskoFollowKrunga) {
       return res.status(400).json({

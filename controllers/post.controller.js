@@ -9,7 +9,7 @@ export const addNewPost = async (req, res) => {
     try {
         const { caption } = req.body;
         const image = req.file;
-        const author = req.id;
+        const author = req.userId;
 
         if (!image) return res.status(400).json({ message: 'Image required' });
 
@@ -71,7 +71,7 @@ export const getAllPosts = async (req, res) => {
 
 export const getUserPosts = async(req, res) => {
     try {
-        const authorId = req.id;
+        const authorId = req.userId;
         const userPosts = await Post.find({author: authorId}).sort({createdAt: -1})
         .populate({path: 'author', select: 'username, avatar'})
         .populate({
@@ -90,7 +90,7 @@ export const getUserPosts = async(req, res) => {
 
 export const likePost = async(req, res) => {
     try {
-        const likeKarneWala = req.id;
+        const likeKarneWala = req.userId;
         const postId = req.params.id;
         const post = await Post.findById(postId);
         if(!post) return res.status(400).json({message: 'Post not found', success: false});
@@ -118,7 +118,7 @@ export const likePost = async(req, res) => {
 
 export const dislikePost = async(req, res) => {
     try {
-        const dislikeKarneWala = req.id;
+        const dislikeKarneWala = req.userId;
         const postId = req.params.id;
         const post = await Post.findById(postId);
         if(!post) return res.status(400).json({message: 'Post not found', success: false});
@@ -148,7 +148,7 @@ export const dislikePost = async(req, res) => {
 export const addComment = async(req, res) => {
 
     try {
-        const commentKarneWala = req.id;
+        const commentKarneWala = req.userId;
         const postId = req.params.id;
         const { text } = req.body;
         const post = await Post.findById(postId);
@@ -197,7 +197,7 @@ export const getCommentsOfPost = async(req, res) => {
 export const deletePost = async(req, res) => {
     try {
         const postId = req.params.id;
-        const authorId = req.id;
+        const authorId = req.userId;
 
         const post = await Post.findById(postId);
         if(!post) return res.status(404).json({
@@ -229,7 +229,7 @@ export const deletePost = async(req, res) => {
 export const savedPost = async(req, res) => {
     try {
         const postId = req.params.id;
-        const authorId = req.id;
+        const authorId = req.userId;
 
         const post = await Post.findById(postId);
         if(!post) return res.status(404).json({message: 'Post not found', success: false});
