@@ -6,7 +6,7 @@ const userSchema = new Schema({
         required: true,
         unique: true
     },
-    email : {
+    email: {
         type: String,
         required: true,
         unique: true
@@ -31,9 +31,21 @@ const userSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User'
     }],
+    isDark: {
+        type: Boolean,
+        default: false
+    },
     following: [{
         type: Schema.Types.ObjectId,
         ref: 'User'
+    }],
+    stories: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Story'
+    }],
+    archieveStories: [{ 
+        type: Schema.Types.ObjectId,
+        ref: 'Story'
     }],
     posts: [{
         type: Schema.Types.ObjectId,

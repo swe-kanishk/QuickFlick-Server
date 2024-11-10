@@ -331,9 +331,15 @@ export const followOrUnfollow = async (req, res) => {
           { $pull: { follower: followKrneWala } }
         ),
       ]);
+      const updatedUser = await User.findById(followKrneWala)
+      .populate('following', 'avatar username stories posts') // Populate necessary fields for following
+      .populate('follower', 'avatar username stories posts');
+
       return res.status(200).json({
         message: "unfollow successfully",
         success: true,
+        isFollowing: false,
+        user: updatedUser
       });
     } else {
       await Promise.all([
@@ -346,12 +352,55 @@ export const followOrUnfollow = async (req, res) => {
           { $push: { follower: followKrneWala } }
         ),
       ]);
+
+      const updatedUser = await User.findById(followKrneWala)
+      .populate('following', 'avatar username stories posts') // Populate necessary fields for following
+      .populate('follower', 'avatar username stories posts');
+
       return res.status(200).json({
         message: "followed successfully",
         success: true,
+        isFollowing: true,
+        user: updatedUser
       });
     }
   } catch (err) {
     console.log(err);
+  }
+};
+
+export const updateTheme = async (req, res) => {
+  console.log(req)
+  const { userId } = req;
+  try {
+    // Find the user by ID
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(200).json({
+        success: false,
+        message: 'User not found!',
+      });
+    }
+
+    // Toggle the isDark field
+    user.isDark = !user.isDark;
+
+    // Save the updated user document
+    await user.save();
+
+    // Return the updated isDark status
+    return res.status(200).json({
+      success: true,
+      isDark: user.isDark,
+      message: `Theme updated to ${user.isDark ? 'dark' : 'light'}`,
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
