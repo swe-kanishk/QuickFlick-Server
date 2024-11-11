@@ -59,6 +59,7 @@ export const postStories = async (req, res) => {
 
 // Get active stories (for a user and their followers)
 export const getStories = async (req, res) => {
+    console.log(req.params)
     try {
       const { userId } = req.params;
   

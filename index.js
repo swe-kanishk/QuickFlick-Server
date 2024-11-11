@@ -8,6 +8,7 @@ import userRoutes from "./routes/user.routes.js"
 import postRoutes from "./routes/post.routes.js"
 import messageRoutes from "./routes/message.routes.js"
 import storiesRoutes from "./routes/story.routes.js"
+import notificationRoutes from "./routes/notification.routes.js"
 import { app, server } from "./socket/socket.js";
 
 import connectDB from "./utils/connectDB.js"
@@ -28,6 +29,7 @@ app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/post", postRoutes);
 app.use("/api/v1/message", messageRoutes);
 app.use("/api/v1/stories", storiesRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
 
 server.listen(PORT, () => {
     connectDB();

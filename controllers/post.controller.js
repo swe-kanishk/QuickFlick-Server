@@ -4,6 +4,7 @@ import { Post } from "../models/post.model.js";
 import { User } from "../models/user.model.js";
 import { Comment } from "../models/comment.model.js";
 import { getReceiverSocketId, io } from "../socket/socket.js";
+import Notification from "../models/Notification.js";
 
 export const addNewPost = async (req, res) => {
     try {
@@ -100,15 +101,17 @@ export const likePost = async(req, res) => {
         const user = await User.findById(likeKarneWala).select('avatar username');
         const postOwnerId = post.author.toString();
         if(postOwnerId !== likeKarneWala) {
-            const notification = {
+            const newNotification = await Notification.create({
                 type: 'like',
-                userId: likeKarneWala,
-                userDetails: user,
-                postId,
-                message: `Your post was liked by ${user.username}`
-            }
+                sender: user,
+                receiver: postOwnerId,
+                postId: postId,
+                message: `Liked your post`,
+                isRead: false,
+            });
+            newNotification.postId = post
             const postOwnerSocketId = getReceiverSocketId(postOwnerId);
-            io.to(postOwnerSocketId).emit('notification', notification);
+            io.to(postOwnerSocketId).emit('notification', newNotification);
         }
         return res.status(200).json({message: 'Post liked', success: true});
     } catch (error) {
@@ -128,15 +131,12 @@ export const dislikePost = async(req, res) => {
         const user = await User.findById(dislikeKarneWala).select('avatar username');
         const postOwnerId = post.author.toString();
         if(postOwnerId !== dislikeKarneWala) {
-            const notification = {
-                type: 'dislike',
-                userId: dislikeKarneWala,
-                userDetails: user,
-                postId,
-                message: `Your post was disliked by ${user.username}`
-            }
-            const postOwnerSocketId = getReceiverSocketId(postOwnerId);
-            io.to(postOwnerSocketId).emit('notification', notification);
+            const deletedNotification = await Notification.findOneAndDelete({
+                type: 'like',
+                sender: dislikeKarneWala,
+                receiver: postOwnerId,
+                postId: postId,
+            });
         }
 
         return res.status(200).json({message: 'Post disliked', success: true});
@@ -166,6 +166,19 @@ export const addComment = async(req, res) => {
 
         post.comments.push(comment._id);
         await post.save();
+
+        const user = await User.findById(commentKarneWala).select('avatar username');
+        if(postOwnerId !== commentKarneWala) {
+            const notification = await Notification.create({
+                type: 'comment',
+                sender: user,
+                receiver: postOwnerId,
+                postId,
+                message: `commented on your post`,
+            });
+            const postOwnerSocketId = getReceiverSocketId(postOwnerId);
+            io.to(postOwnerSocketId).emit('notification', notification);
+        }
 
         return res.status(200).json({
             message: 'comment added successfully!',
