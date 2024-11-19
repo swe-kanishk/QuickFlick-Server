@@ -89,49 +89,63 @@ export const getUserPosts = async(req, res) => {
     }
 }
 
-export const likePost = async(req, res) => {
+export const likePost = async (req, res) => {
     try {
         const likeKarneWala = req.userId;
         const postId = req.params.id;
         const post = await Post.findById(postId);
-        if(!post) return res.status(400).json({message: 'Post not found', success: false});
-        await post.updateOne({$addToSet: {likes: likeKarneWala}});
+        if (!post) return res.status(400).json({ message: 'Post not found', success: false });
+
+        await post.updateOne({ $addToSet: { likes: likeKarneWala } });
         await post.save();
 
         const user = await User.findById(likeKarneWala).select('avatar username');
         const postOwnerId = post.author.toString();
-        if(postOwnerId !== likeKarneWala) {
-            const newNotification = await Notification.create({
+
+        if (postOwnerId !== likeKarneWala) {
+            // Check if a similar notification already exists
+            const existingNotification = await Notification.findOne({
                 type: 'like',
-                sender: user,
+                sender: likeKarneWala,
                 receiver: postOwnerId,
                 postId: postId,
-                message: `Liked your post`,
-                isRead: false,
             });
-            newNotification.postId = post
-            const postOwnerSocketId = getReceiverSocketId(postOwnerId);
-            io.to(postOwnerSocketId).emit('notification', newNotification);
-        }
-        return res.status(200).json({message: 'Post liked', success: true});
-    } catch (error) {
-        console.log(error)
-    }    
-}
 
-export const dislikePost = async(req, res) => {
+            if (!existingNotification) {
+                const newNotification = await Notification.create({
+                    type: 'like',
+                    sender: user,
+                    receiver: postOwnerId,
+                    postId: postId,
+                    message: `Liked your post`,
+                    isRead: false,
+                });
+                newNotification.postId = post;
+                const postOwnerSocketId = getReceiverSocketId(postOwnerId);
+                io.to(postOwnerSocketId).emit('notification', newNotification);
+            }
+        }
+        return res.status(200).json({ message: 'Post liked', success: true });
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+export const dislikePost = async (req, res) => {
     try {
         const dislikeKarneWala = req.userId;
         const postId = req.params.id;
         const post = await Post.findById(postId);
-        if(!post) return res.status(400).json({message: 'Post not found', success: false});
-        await post.updateOne({$pull: {likes: dislikeKarneWala}});
+        if (!post) return res.status(400).json({ message: 'Post not found', success: false });
+
+        await post.updateOne({ $pull: { likes: dislikeKarneWala } });
         await post.save();
 
         const user = await User.findById(dislikeKarneWala).select('avatar username');
         const postOwnerId = post.author.toString();
-        if(postOwnerId !== dislikeKarneWala) {
-            const deletedNotification = await Notification.findOneAndDelete({
+
+        if (postOwnerId !== dislikeKarneWala) {
+            await Notification.findOneAndDelete({
                 type: 'like',
                 sender: dislikeKarneWala,
                 receiver: postOwnerId,
@@ -139,56 +153,70 @@ export const dislikePost = async(req, res) => {
             });
         }
 
-        return res.status(200).json({message: 'Post disliked', success: true});
+        return res.status(200).json({ message: 'Post disliked', success: true });
     } catch (error) {
-        console.log(error)
-    }    
-}
+        console.log(error);
+    }
+};
 
-export const addComment = async(req, res) => {
-
+export const addComment = async (req, res) => {
     try {
         const commentKarneWala = req.userId;
         const postId = req.params.id;
         const { text } = req.body;
         const post = await Post.findById(postId);
-        if(!text) return res.status(400).json({message: 'text is required', success: false});
+
+        if (!text) return res.status(400).json({ message: 'text is required', success: false });
+
         let comment = await Comment.create({
             text,
             author: commentKarneWala,
-            post: postId
-        })
+            post: postId,
+        });
 
         comment = await comment.populate({
             path: 'author',
-            select: 'username avatar'
-        })
+            select: 'username avatar',
+        });
 
         post.comments.push(comment._id);
         await post.save();
 
         const user = await User.findById(commentKarneWala).select('avatar username');
-        if(postOwnerId !== commentKarneWala) {
-            const notification = await Notification.create({
+        const postOwnerId = post.author.toString();
+
+        if (postOwnerId !== commentKarneWala) {
+            // Check if a similar notification already exists
+            const existingNotification = await Notification.findOne({
                 type: 'comment',
-                sender: user,
+                sender: commentKarneWala,
                 receiver: postOwnerId,
-                postId,
-                message: `commented on your post`,
+                postId: postId,
             });
-            const postOwnerSocketId = getReceiverSocketId(postOwnerId);
-            io.to(postOwnerSocketId).emit('notification', notification);
+
+            if (!existingNotification) {
+                const notification = await Notification.create({
+                    type: 'comment',
+                    sender: user,
+                    receiver: postOwnerId,
+                    postId,
+                    message: `commented on your post`,
+                });
+                const postOwnerSocketId = getReceiverSocketId(postOwnerId);
+                io.to(postOwnerSocketId).emit('notification', notification);
+            }
         }
 
         return res.status(200).json({
             message: 'comment added successfully!',
             success: true,
-            comment
-        })
+            comment,
+        });
     } catch (error) {
-        console.log(error)
+        console.log(error);
     }
-}
+};
+
 
 export const getCommentsOfPost = async(req, res) => {
     try {

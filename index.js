@@ -12,6 +12,7 @@ import notificationRoutes from "./routes/notification.routes.js"
 import { app, server } from "./socket/socket.js";
 
 import connectDB from "./utils/connectDB.js"
+import { cleanupExpiredStories } from "./jobs/storyCleanup.js"
 
 const PORT = process.env.PORT || 3000;
 
@@ -24,6 +25,8 @@ app.use(cors({
 app.use(express.json()); 
 app.use(cookieParser())
 app.use(urlencoded({extended: true}))
+
+cleanupExpiredStories();
 
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/post", postRoutes);
