@@ -134,7 +134,15 @@ export const login = async (req, res) => {
   const {email, password} = req.body;
   console.log(email, password)
   try {
-    const user = await User.findOne({email});
+    const user = await User.findOne({email}).populate({
+      path: "following", // Populate the 'following' field
+      select: "username avatar bio stories", // Include only specific fields
+      populate: {
+        path: "stories", // Nested populate for 'stories'
+        select: "title content createdAt", // Replace with story fields you need
+      },
+    });
+
     if(!user) {
       return res.status(400).json({success: false, message: "Invalid credentials"});
     }
@@ -218,7 +226,14 @@ export const resetPassword = async(req, res) => {
 
 export const checkAuth = async(req, res) => {
     try {
-      const user = await User.findById(req.userId).select("-password");
+      const user = await User.findById(req.userId).select("-password").populate({
+        path: "following", // Populate the 'following' field
+        select: "username avatar bio stories", // Include only specific fields
+        populate: {
+          path: "stories", // Nested populate for 'stories'
+          select: "title content createdAt", // Replace with story fields you need
+        },
+      });
       if(!user) return res.status(400).json({success: false, message: "User not found"});
       console.log("yse success hua", user)
       res.status(200).json({success: true, user})

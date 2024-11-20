@@ -1,35 +1,57 @@
 import { Conversation } from "../models/conversation.model.js";
 import { Message } from "../models/message.model.js";
+import { User } from "../models/user.model.js";
 import { getReceiverSocketId, io } from "../socket/socket.js";
 
-export const sendMessage = async(req, res) => {
+export const sendMessage = async (req, res) => {
     try {
         const senderId = req.userId;
         const receiverId = req.params.id;
-        const {textMessage: message} = req.body;
+        const { textMessage: message } = req.body;
 
+        // Find the conversation between sender and receiver
         let conversation = await Conversation.findOne({
-            participants: {$all: [senderId, receiverId]}
-        });
-        if(!conversation) {
+            participants: { $all: [senderId, receiverId] }
+        }).populate('participants', 'username avatar'); // Populate username and avatar
+
+
+        // // Create a new conversation if it doesn't exist
+        if (!conversation) {
             conversation = await Conversation.create({
                 participants: [senderId, receiverId]
             });
-        };
+            await conversation.populate('participants', 'username avatar'); // Populate for new conversation
+        }
+
+        // // Create a new message
         const newMessage = await Message.create({
             receiverId,
             senderId,
             message,
         });
-        if(newMessage) conversation.messages.push(newMessage._id);
+
+        // // Add the new message to the conversation
+        if (newMessage) {
+            conversation.messages.push(newMessage._id);
+        }
+
+        // // Save both conversation and message
         await Promise.all([conversation.save(), newMessage.save()]);
 
+        // // Get receiver's socket ID for real-time notification
         const recieverSocketId = getReceiverSocketId(receiverId);
 
-        if(recieverSocketId) {
-            console.log(newMessage)
-            console.log('hello ji')
-            io.to(recieverSocketId).emit('newMessage', newMessage)
+        const sender = await User.findById(req.userId).select('-password')
+
+        if (recieverSocketId) {
+            io.to(recieverSocketId).emit('newMessage', {
+                ...newMessage._doc,
+                sender: {
+                    id: senderId,
+                    username: sender.username,
+                    avatar: sender.avatar
+                }
+            });
         }
 
         return res.status(201).json({
