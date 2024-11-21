@@ -5,9 +5,14 @@ import cloudinary from "../utils/cloudinary.js";
 import { Post } from "../models/post.model.js";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
 
-import crypto from 'crypto';
+import crypto from "crypto";
 
-import {sendPasswordResetEmail, sendPasswordResetSuccessEmail, sendVerificationEmail, sendWelcomeEmail} from "../mailtrap/sendEmails.js";
+import {
+  sendPasswordResetEmail,
+  sendPasswordResetSuccessEmail,
+  sendVerificationEmail,
+  sendWelcomeEmail,
+} from "../mailtrap/sendEmails.js";
 
 export const register = async (req, res) => {
   try {
@@ -62,7 +67,9 @@ export const resendOTP = async (req, res) => {
 
   try {
     // Generate a new verification token and set the expiry time
-    const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationToken = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
     const verificationTokenExpiresAt = Date.now() + 5 * 60 * 1000; // Expires in 5 minutes
 
     // Find the user by ID and update the verification token and expiry time
@@ -70,28 +77,34 @@ export const resendOTP = async (req, res) => {
       userId,
       { verificationToken, verificationTokenExpiresAt },
       { new: true }
-    ).select('-password -resetPasswordToken -resetPasswordExpiresAt -verificationToken -verificationTokenExpiresAt');
+    ).select(
+      "-password -resetPasswordToken -resetPasswordExpiresAt -verificationToken -verificationTokenExpiresAt"
+    );
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found', success: false });
+      return res
+        .status(404)
+        .json({ message: "User not found", success: false });
     }
 
     sendVerificationEmail(user.email, verificationToken);
-    
+
     res.status(200).json({
-      message: 'OTP has been resent successfully',
+      message: "OTP has been resent successfully",
       success: true,
-      user
+      user,
     });
   } catch (error) {
-    console.error('Error resending OTP:', error);
-    res.status(500).json({ message: 'Failed to resend OTP', error: error.message });
+    console.error("Error resending OTP:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to resend OTP", error: error.message });
   }
 };
 
 export const verifyEmail = async (req, res) => {
   const { code } = req.body;
-  console.log(code)
+  console.log(code);
   try {
     const user = await User.findOne({
       verificationToken: code,
@@ -131,10 +144,10 @@ export const logout = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const {email, password} = req.body;
-  console.log(email, password)
+  const { email, password } = req.body;
+  console.log(email, password);
   try {
-    const user = await User.findOne({email}).populate({
+    const user = await User.findOne({ email }).populate({
       path: "following", // Populate the 'following' field
       select: "username avatar bio stories", // Include only specific fields
       populate: {
@@ -143,13 +156,17 @@ export const login = async (req, res) => {
       },
     });
 
-    if(!user) {
-      return res.status(400).json({success: false, message: "Invalid credentials"});
+    if (!user) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid credentials" });
     }
 
     const isPasswordMatched = await bcrypt.compare(password, user.password);
-    if(!isPasswordMatched) {
-      return res.status(400).json({success: false, message: "Incorrect email or password!"})
+    if (!isPasswordMatched) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Incorrect email or password!" });
     }
 
     generateTokenAndSetCookie(res, user._id);
@@ -157,57 +174,76 @@ export const login = async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
-    res.status(200).json({success: true, message: "Logged in successfully", user: {
-      ...user._doc, 
-      password: null
-    }})
+    res.status(200).json({
+      success: true,
+      message: "Logged in successfully",
+      user: {
+        ...user._doc,
+        password: null,
+      },
+    });
   } catch (error) {
     console.log("Error in login", error);
-    res.status(400).json({success: false, message: error.message})
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
-export const forgotPassword = async(req, res) => {
-    const { email } = req.body;
-    try {
-      const user = await User.findOne({email});
-      if(!user) {
-        return res.status(400).json({
-          success: false,
-          message: "User not found!"
-        })
-      }
-
-      const resetToken = crypto.randomBytes(10).toString("hex");
-      const resetTokenExpiresAt = Date.now() + 5 * 60 * 1000;
-
-      user.resetPasswordToken = resetToken;
-      user.resetPasswordExpiresAt = resetTokenExpiresAt;
-      await user.save();
-
-      // send email 
-      await sendPasswordResetEmail(user.email, `${process.env.FRONTEND_URL}/reset-password/${resetToken}`);
-      return res.status(200).json({success: true, message: "Password reset link, sent to your email successfully"})
-    } catch (error) {
-      return res.status(400).json({success: false, message: error.message})
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "User not found!",
+      });
     }
-}
 
-export const resetPassword = async(req, res) => {
+    const resetToken = crypto.randomBytes(10).toString("hex");
+    const resetTokenExpiresAt = Date.now() + 5 * 60 * 1000;
+
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpiresAt = resetTokenExpiresAt;
+    await user.save();
+
+    // send email
+    await sendPasswordResetEmail(
+      user.email,
+      `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
+    );
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "Password reset link, sent to your email successfully",
+      });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+export const resetPassword = async (req, res) => {
   const { token } = req.params;
   const { password } = req.body;
-  console.log(token, password)
-  if(!token || !password) {
-    return res.status(400).json({success: false, message: "password or token is missing"})
+  console.log(token, password);
+  if (!token || !password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "password or token is missing" });
   }
   try {
-    const user = await User.findOne({resetPasswordToken: token, resetPasswordExpiresAt: {$gt: Date.now()}});
-    console.log(user)
-    if(!user) {
-      return res.status(400).json({success: false, message: "Invalid or expired reset token"});
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpiresAt: { $gt: Date.now() },
+    });
+    console.log(user);
+    if (!user) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired reset token" });
     }
 
-    // update password 
+    // update password
     const updatePassword = await bcrypt.hash(password, 10);
 
     user.password = updatePassword;
@@ -215,18 +251,22 @@ export const resetPassword = async(req, res) => {
     user.resetPasswordExpiresAt = null;
     await user.save();
 
-    // sending success email 
+    // sending success email
     await sendPasswordResetSuccessEmail(user.email);
-    res.status(200).json({success: true, message: "Password reset successfully"})
+    res
+      .status(200)
+      .json({ success: true, message: "Password reset successfully" });
   } catch (error) {
-    console.log(`Error in resetPassword`, error)
-    res.status(400).json({success: false, message: error.message})
+    console.log(`Error in resetPassword`, error);
+    res.status(400).json({ success: false, message: error.message });
   }
-}
+};
 
-export const checkAuth = async(req, res) => {
-    try {
-      const user = await User.findById(req.userId).select("-password").populate({
+export const checkAuth = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId)
+      .select("-password")
+      .populate({
         path: "following", // Populate the 'following' field
         select: "username avatar bio stories", // Include only specific fields
         populate: {
@@ -234,21 +274,33 @@ export const checkAuth = async(req, res) => {
           select: "title content createdAt", // Replace with story fields you need
         },
       });
-      if(!user) return res.status(400).json({success: false, message: "User not found"});
-      console.log("yse success hua", user)
-      res.status(200).json({success: true, user})
-    } catch (error) {
-      console.log("Error in checkAuth", error);
-      res.status(400).json({success: false, message: error.message})
-    }
-}
+    if (!user)
+      return res
+        .status(400)
+        .json({ success: false, message: "User not found" });
+    console.log("yse success hua", user);
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.log("Error in checkAuth", error);
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
 
 export const getProfile = async (req, res) => {
   const userId = req.params.id;
   try {
-    const user = await User.findById(userId).select("-password")
+    const user = await User.findById(userId)
+      .select("-password")
       .populate({ path: "posts", createdAt: -1 })
-      .populate("saved");
+      .populate("saved")
+      .populate({
+        path: "follower",
+        select: "avatar username", // Only include avatar and username for followers
+      })
+      .populate({
+        path: "following",
+        select: "avatar username", // Only include avatar and username for following
+      });
     return res.status(200).json({
       user,
       success: true,
@@ -347,14 +399,14 @@ export const followOrUnfollow = async (req, res) => {
         ),
       ]);
       const updatedUser = await User.findById(followKrneWala)
-      .populate('following', 'avatar username stories posts') // Populate necessary fields for following
-      .populate('follower', 'avatar username stories posts');
+        .populate("following", "avatar username stories posts") // Populate necessary fields for following
+        .populate("follower", "avatar username stories posts");
 
       return res.status(200).json({
         message: "unfollow successfully",
         success: true,
         isFollowing: false,
-        user: updatedUser
+        user: updatedUser,
       });
     } else {
       await Promise.all([
@@ -369,14 +421,14 @@ export const followOrUnfollow = async (req, res) => {
       ]);
 
       const updatedUser = await User.findById(followKrneWala)
-      .populate('following', 'avatar username stories posts') // Populate necessary fields for following
-      .populate('follower', 'avatar username stories posts');
+        .populate("following", "avatar username stories posts") // Populate necessary fields for following
+        .populate("follower", "avatar username stories posts");
 
       return res.status(200).json({
         message: "followed successfully",
         success: true,
         isFollowing: true,
-        user: updatedUser
+        user: updatedUser,
       });
     }
   } catch (err) {
@@ -385,16 +437,16 @@ export const followOrUnfollow = async (req, res) => {
 };
 
 export const updateTheme = async (req, res) => {
-  console.log(req)
+  console.log(req);
   const { userId } = req;
   try {
     // Find the user by ID
     const user = await User.findById(userId);
-    
+
     if (!user) {
       return res.status(200).json({
         success: false,
-        message: 'User not found!',
+        message: "User not found!",
       });
     }
 
@@ -408,9 +460,8 @@ export const updateTheme = async (req, res) => {
     return res.status(200).json({
       success: true,
       isDark: user.isDark,
-      message: `Theme updated to ${user.isDark ? 'dark' : 'light'}`,
+      message: `Theme updated to ${user.isDark ? "dark" : "light"}`,
     });
-
   } catch (error) {
     console.error(error);
     return res.status(400).json({
