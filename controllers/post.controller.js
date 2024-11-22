@@ -9,26 +9,34 @@ import Notification from "../models/Notification.js";
 export const addNewPost = async (req, res) => {
     try {
         const { caption } = req.body;
-        const image = req.file;
+        const images = req.files;
         const author = req.userId;
 
-        if (!image) return res.status(400).json({ message: 'Image required' });
+        if (!images || images.length === 0) {
+            return res.status(400).json({ message: 'At least one image is required' });
+        }
 
-        const optimizedImageBuffer = await sharp(image.buffer)
-            .resize({ width: 800, height: 800, fit: 'inside' })
-            .toFormat('jpeg', { quality: 80 })
-            .toBuffer();
+        const imageUrls = [];
 
-        const fileUri = `data:image/jpeg;base64,${optimizedImageBuffer.toString('base64')}`;
-        const cloudResponse = await cloudinary.uploader.upload(fileUri);
+        for (let image of images) {
+            const optimizedImageBuffer = await sharp(image.buffer)
+                .resize({ width: 800, height: 800, fit: 'inside' })
+                .toFormat('jpeg', { quality: 80 })
+                .toBuffer();
 
-        const imageUrl = cloudResponse.secure_url;
+            const fileUri = `data:image/jpeg;base64,${optimizedImageBuffer.toString('base64')}`;
+
+            // Upload image to Cloudinary
+            const cloudResponse = await cloudinary.uploader.upload(fileUri);
+            imageUrls.push(cloudResponse.secure_url);
+        }
 
         const post = await Post.create({
             caption,
             author,
-            image: imageUrl
+            images: imageUrls // Store array of image URLs
         });
+
 
         const user = await User.findById(author);
         if (user) {
