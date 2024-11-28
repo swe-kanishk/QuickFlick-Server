@@ -9,35 +9,50 @@ import Notification from "../models/Notification.js";
 export const addNewPost = async (req, res) => {
     try {
         const { caption } = req.body;
-        const images = req.files;
+        const images = req.files['images']; // Multiple images
+        const audio = req.files['audio'] ? req.files['audio'][0] : null; // Single audio (optional)
         const author = req.userId;
 
-        if (!images || images.length === 0) {
-            return res.status(400).json({ message: 'At least one image is required' });
+        if ((!images || images.length === 0) && !audio) {
+            return res.status(400).json({ message: 'At least one image or an audio file is required' });
         }
 
         const imageUrls = [];
 
-        for (let image of images) {
-            const optimizedImageBuffer = await sharp(image.buffer)
-                .resize({ width: 800, height: 800, fit: 'inside' })
-                .toFormat('jpeg', { quality: 80 })
-                .toBuffer();
+        // Process and upload images
+        if (images && images.length > 0) {
+            for (let image of images) {
+                const optimizedImageBuffer = await sharp(image.buffer)
+                    .resize({ width: 800, height: 800, fit: 'inside' })
+                    .toFormat('jpeg', { quality: 80 })
+                    .toBuffer();
 
-            const fileUri = `data:image/jpeg;base64,${optimizedImageBuffer.toString('base64')}`;
+                const fileUri = `data:image/jpeg;base64,${optimizedImageBuffer.toString('base64')}`;
 
-            // Upload image to Cloudinary
-            const cloudResponse = await cloudinary.uploader.upload(fileUri);
-            imageUrls.push(cloudResponse.secure_url);
+                const cloudResponse = await cloudinary.uploader.upload(fileUri);
+                imageUrls.push(cloudResponse.secure_url);
+            }
         }
 
+        // Process and upload audio
+        let audioUrl = null;
+        if (audio) {
+            const audioBuffer = `data:${audio.mimetype};base64,${audio.buffer.toString('base64')}`;
+            const cloudResponse = await cloudinary.uploader.upload(audioBuffer, {
+                resource_type: 'video', // Cloudinary uses "video" for audio files
+            });
+            audioUrl = cloudResponse.secure_url;
+        }
+
+        // Save the post to the database
         const post = await Post.create({
             caption,
             author,
-            images: imageUrls // Store array of image URLs
+            images: imageUrls,
+            audio: audioUrl, // Store the audio URL
         });
 
-
+        // Add the post to the user's post array
         const user = await User.findById(author);
         if (user) {
             user.posts.push(post._id);
@@ -49,10 +64,10 @@ export const addNewPost = async (req, res) => {
         return res.status(201).json({
             message: 'Post added successfully!',
             post,
-            success: true
+            success: true,
         });
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return res.status(500).json({ message: 'Server error' });
     }
 };

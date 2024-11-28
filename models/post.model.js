@@ -5,10 +5,16 @@ const postSchema = new Schema({
         type: String,
         default: ''
     },
-    images: [{
+    images: [
+        {
+            type: String,
+            required: true,
+        },
+    ],
+    audio: {
         type: String,
-        required: true
-    }],
+        required: false,
+    },
     author: {
         type: Schema.Types.ObjectId,
         ref: 'User',
