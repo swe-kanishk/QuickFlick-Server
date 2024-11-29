@@ -2,16 +2,15 @@ import express from "express";
 import { isAuthenticated } from "../middlewares/isAuthenticated.js";
 
 import { addComment, addNewPost, deletePost, dislikePost, getAllPosts, getCommentsOfPost, getUserPosts, likePost, savedPost } from "../controllers/post.controller.js";
-import { postUpload } from "../middlewares/postUpload.js";
-import { audioUpload } from "../middlewares/audioUpload.js";
+import upload from "../middlewares/multer.js";
 
 const router = express.Router();
 
-router.route('/addpost').post(isAuthenticated, postUpload.fields([
+router.route('/addpost').post(isAuthenticated, upload.fields([
     { name: 'audio', maxCount: 1 },
     { name: 'images', maxCount: 8 },
+    { name: 'video', maxCount: 1 }
 ]), addNewPost);
-// router.route('/addAudio').post(isAuthenticated, audioUpload.single('audio'), addNewAudioPost);
 router.route('/all').get(isAuthenticated, getAllPosts);
 router.route('/userpost/all').get(isAuthenticated, getUserPosts);
 router.route('/:id/like').get(isAuthenticated, likePost);
