@@ -9,14 +9,15 @@ import Notification from "../models/Notification.js";
 export const addNewPost = async (req, res) => {
   try {
     const { type, caption, title, content } = req.body;
+
     const images = type === "post" && req.files["images"];
-    const audio =
-      type === ("audio" || "post" || "shorts") && req.files["audio"]
-        ? req.files["audio"][0]
-        : null;
+    const audio = type === "audio" || "post" || "shorts" && req.files["audio"] ? req.files["audio"][0] : null;
     const video =
       type === "shorts" && req.files["video"] ? req.files["video"][0] : null;
     const author = req.userId;
+
+    console.log(images)
+    console.log(audio)
 
     if (!type || !["blog", "post", "audio", "short"].includes(type)) {
       return res.status(400).json({ message: "Invalid post type provided." });
@@ -35,11 +36,11 @@ export const addNewPost = async (req, res) => {
           .json({ message: "Audio is required for audio posts." });
       }
     } else if (type === "post") {
-      if ((!images || images.length === 0) && !audio) {
+      if (!images || images.length === 0) {
         return res
           .status(400)
           .json({
-            message: "At least one image or audio is required for post type.",
+            message: "At least one image is required for post type.",
           });
       }
 
@@ -95,6 +96,8 @@ export const addNewPost = async (req, res) => {
     }
 
     console.log(imageUrls)
+    console.log(videoUrl)
+    console.log(audioUrl)
     const post = await Post.create({
       type,
       caption: type === "audio" || type === "short" ? caption : undefined,
