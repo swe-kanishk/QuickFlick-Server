@@ -45,7 +45,7 @@ const postSchema = new Schema(
     audio: {
       type: String,
       required: function () {
-        return this.type === 'audio' || this.type === 'short';  // Audio required for 'audio' and 'short' types
+        return this.type === 'audio';
       },
     },
     author: {

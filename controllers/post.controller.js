@@ -7,17 +7,15 @@ import { getReceiverSocketId, io } from "../socket/socket.js";
 import Notification from "../models/Notification.js";
 
 export const addNewPost = async (req, res) => {
+  console.log(req.files["video"].length)
+  console.log(req.files["audio"])
   try {
     const { type, caption, title, content } = req.body;
 
     const images = type === "post" && req.files["images"];
-    const audio = type === "audio" || "post" || "shorts" && req.files["audio"] ? req.files["audio"][0] : null;
-    const video =
-      type === "shorts" && req.files["video"] ? req.files["video"][0] : null;
+    const audio = type === ("audio" || "post" || "short") && req.files["audio"] ? req.files["audio"][0] : null;
+    const video = type === "short" && req.files["video"][0] ? req.files["video"][0] : null;
     const author = req.userId;
-
-    console.log(images)
-    console.log(audio)
 
     if (!type || !["blog", "post", "audio", "short"].includes(type)) {
       return res.status(400).json({ message: "Invalid post type provided." });
@@ -53,7 +51,7 @@ export const addNewPost = async (req, res) => {
       if (!video) {
         return res
           .status(400)
-          .json({ message: "A video is required for shorts." });
+          .json({ message: "A video is required for short." });
       }
     }
 
@@ -106,9 +104,11 @@ export const addNewPost = async (req, res) => {
       author,
       images: type === "post" && imageUrls.length > 0 ? imageUrls : [],
       audio:
-        (type === "post" || type === "audio" || type === "short") && audioUrl
-          ? audioUrl
-          : null,
+      type === "audio"
+        ? audioUrl // Required only for type 'audio'
+        : (type === "post" || type === "short") && audioUrl
+        ? audioUrl // Optional for 'post' and 'short'
+        : null,
       video: type === "short" && videoUrl ? videoUrl : null,
     });
 
