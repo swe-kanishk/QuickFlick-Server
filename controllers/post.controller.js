@@ -7,8 +7,6 @@ import { getReceiverSocketId, io } from "../socket/socket.js";
 import Notification from "../models/Notification.js";
 
 export const addNewPost = async (req, res) => {
-  console.log(req.files["video"].length)
-  console.log(req.files["audio"])
   try {
     const { type, caption, title, content } = req.body;
 
@@ -133,8 +131,12 @@ export const addNewPost = async (req, res) => {
 
 export const getAllPosts = async (req, res) => {
   try {
+    const { page = 1, limit = 5 } = req.query;
+
     const posts = await Post.find()
       .sort({ createdAt: -1 })
+      .skip((page - 1) * parseInt(limit, 10)) // Correct radix
+      .limit(parseInt(limit, 10)) // Correct radix
       .populate({ path: "author", select: "username avatar" })
       .populate({
         path: "comments",
@@ -142,15 +144,21 @@ export const getAllPosts = async (req, res) => {
         populate: { path: "author", select: "username avatar" },
       });
 
+    const totalPosts = await Post.countDocuments();
+
     return res.status(200).json({
       posts,
       success: true,
+      currentPage: page,
+      totalPages: Math.ceil(totalPosts / limit),
     });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+
 
 export const getUserPosts = async (req, res) => {
   try {
