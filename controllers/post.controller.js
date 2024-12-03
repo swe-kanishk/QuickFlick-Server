@@ -210,7 +210,7 @@ export const likePost = async (req, res) => {
           sender: user,
           receiver: postOwnerId,
           postId: postId,
-          message: `Liked your post`,
+          message: `Liked your ${post?.type}`,
           isRead: false,
         });
         newNotification.postId = post;
