@@ -182,21 +182,34 @@ export const getUserPosts = async (req, res) => {
 
 export const likePost = async (req, res) => {
   try {
-    const likeKarneWala = req.userId;
-    const postId = req.params.id;
+    const likeKarneWala = req.userId; // User liking the post
+    const postId = req.params.id; // Post being liked
+
+    // Find the post
     const post = await Post.findById(postId);
-    if (!post)
+    if (!post) {
       return res
         .status(400)
         .json({ message: "Post not found", success: false });
+    }
 
+    // Add the user to the likes set
     await post.updateOne({ $addToSet: { likes: likeKarneWala } });
     await post.save();
 
+    // Get user details
     const user = await User.findById(likeKarneWala).select("avatar username");
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "User not found", success: false });
+    }
+
     const postOwnerId = post.author.toString();
 
+    // Avoid creating a notification for self-like
     if (postOwnerId !== likeKarneWala) {
+      // Check if a similar notification already exists
       const existingNotification = await Notification.findOne({
         type: "like",
         sender: likeKarneWala,
@@ -205,22 +218,35 @@ export const likePost = async (req, res) => {
       });
 
       if (!existingNotification) {
+        // Create a new notification
         const newNotification = await Notification.create({
           type: "like",
-          sender: user,
+          sender: likeKarneWala, // Save sender's ObjectId
           receiver: postOwnerId,
-          postId: postId,
+          postId: postId, // Save post's ObjectId
           message: `Liked your ${post?.type}`,
           isRead: false,
         });
-        newNotification.postId = post;
+
+        // Populate additional fields
+        const populatedNotification = await Notification.findById(
+          newNotification._id
+        )
+          .populate("sender", "avatar username") // Include sender's avatar and username
+          .populate("postId", "images audio type video content"); // Include the full post details
+
+        // Emit the notification via socket
         const postOwnerSocketId = getReceiverSocketId(postOwnerId);
-        io.to(postOwnerSocketId).emit("notification", newNotification);
+        if (postOwnerSocketId) {
+          io.to(postOwnerSocketId).emit("notification", populatedNotification);
+        }
       }
     }
+
     return res.status(200).json({ message: "Post liked", success: true });
   } catch (error) {
-    console.log(error);
+    console.error("Error liking post:", error);
+    return res.status(500).json({ message: "Internal server error", success: false });
   }
 };
 

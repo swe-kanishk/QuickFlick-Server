@@ -4,7 +4,7 @@ export const getNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({ receiver: req.userId })
       .populate('sender', 'username avatar')
-      .populate('postId', 'image caption')
+      .populate('postId', 'images content audio type video')
       .sort({ createdAt: -1 });
     
     res.status(200).json({ success: true, notifications });
