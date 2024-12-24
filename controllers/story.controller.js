@@ -5,6 +5,7 @@ import { User } from "../models/user.model.js";
 
 // Add a new story
 export const postStories = async (req, res) => {
+    console.log(req)
     try {
         const { caption } = req.body;
         const image = req.file;
