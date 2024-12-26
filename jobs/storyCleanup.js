@@ -7,7 +7,7 @@ export const cleanupExpiredStories = () => {
     console.log(`Cron job started at ${new Date().toISOString()}`);
 
     try {
-      const now = new Date();
+      const now = new Date().toISOString();
 
       const expiredStories = await Story.find({ expiryTime: { $lte: now } });
 
