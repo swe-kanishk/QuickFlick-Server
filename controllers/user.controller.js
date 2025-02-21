@@ -12,7 +12,7 @@ import {
   sendPasswordResetSuccessEmail,
   sendVerificationEmail,
   sendWelcomeEmail,
-} from "../mailtrap/sendEmails.js";
+} from "../nodemailer/sendEmails.js";
 
 export const register = async (req, res) => {
   try {
@@ -47,7 +47,7 @@ export const register = async (req, res) => {
 
     // jwt
     generateTokenAndSetCookie(res, user._id);
-    // sendVerificationEmail(user.email, verificationToken);
+    await sendVerificationEmail(user.email, verificationToken);
 
     res.status(201).json({
       success: true,
@@ -87,7 +87,7 @@ export const resendOTP = async (req, res) => {
         .json({ message: "User not found", success: false });
     }
 
-    sendVerificationEmail(user.email, verificationToken);
+    await sendVerificationEmail(user.email, verificationToken);
 
     res.status(200).json({
       message: "OTP has been resent successfully",
@@ -121,7 +121,7 @@ export const verifyEmail = async (req, res) => {
       (user.verificationToken = undefined),
       (user.verificationTokenExpiresAt = undefined),
       await user.save();
-    // await sendWelcomeEmail(user.email, user.username);
+    await sendWelcomeEmail(user.email, user.username);
     return res.status(201).json({
       success: true,
       message: "Email verified successfully",
