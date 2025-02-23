@@ -332,8 +332,25 @@ export const editProfile = async (req, res) => {
     }
     if (bio) user.bio = bio;
     if (gender) user.gender = gender;
-    if (avatar) user.avatar = cloudResponse.secure_url;
+    if (avatar) {
+      if (user.avatar) {
+        try {
+          const avatarUrl = user.avatar;
+          const urlParts = avatarUrl.split("/");
+          const fileNameWithExt = urlParts[urlParts.length - 1];
+          const publicId = fileNameWithExt.substring(
+            0,
+            fileNameWithExt.lastIndexOf(".")
+          );
+  
+          await cloudinary.uploader.destroy(publicId);
+    user.avatar = cloudResponse.secure_url;
 
+        } catch (deleteError) {
+          console.error("Error deleting old avatar:", deleteError);
+        }
+      }
+    }
     await user.save();
 
     user.password = undefined;
